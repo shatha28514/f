@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8" />
+    <title>حاسبة التقاعد مع خيارات الاستلام</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 30px auto;
+            direction: rtl;
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            margin-top: 20px;
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #0077cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+        .result, .retirement-options {
+            margin-top: 25px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            line-height: 1.6;
+        }
+        .warning {
+            color: #d9534f;
+            font-weight: bold;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<!-- الصفحة الأولى: حاسبة التقاعد -->
+<div id="calculator-section">
+    <h2>حاسبة التقاعد مع الفائدة وحساب الادخار المعقول</h2>
+
+    <label for="age">📌 أدخل عمرك الحالي:</label>
+    <input type="number" id="age" min="1" max="100" value="35" />
+
+    <label for="salary">📌 أدخل راتبك الشهري (ريال):</label>
+    <input type="number" id="salary" min="0" value="8000" />
+
+    <label for="interest">📌 اختر معدل الفائدة السنوية (%):</label>
+    <select id="interest">
+        <option value="3">3%</option>
+        <option value="5" selected>5%</option>
+        <option value="7">7%</option>
+    </select>
+
+    <label for="target">📌 أدخل المبلغ الذي تريده عند التقاعد (ريال):</label>
+    <input type="number" id="target" min="0" value="2000000" />
+
+    <button onclick="calculateRetirement()">احسب الآن</button>
+    <div class="result" id="result"></div>
+
+    <button id="nextBtn" onclick="showOptions()" style="display: none;">Next ➡️</button>
+</div>
+
+<!-- الصفحة الثانية: خيارات الاستلام -->
+<div id="options-section" style="display: none;">
+    <h2>خيارات استلام مبلغ التقاعد</h2>
+    <p>💰 المبلغ المتاح لك: <strong id="finalAmount"></strong> ريال</p>
+
+    <button onclick="receiveLumpSum()">استلام دفعة واحدة</button>
+
+    <div style="margin-top: 20px;">
+        <label for="months">📆 أدخل عدد الأشهر التي ترغب في توزيع المبلغ عليها:</label>
+        <input type="number" id="months" min="1" />
+        <button onclick="receiveMonthly()">استلام شهريًا</button>
+    </div>
+
+    <div class="result" id="distributionResult"></div>
+</div>
+
+<script>
+let finalAmount = 0;
+
+function calculateRetirement() {
+    const retirementAge = 60;
+    let currentAge = parseInt(document.getElementById('age').value);
+    let monthlySalary = parseFloat(document.getElementById('salary').value);
+    let annualInterestRate = parseFloat(document.getElementById('interest').value);
+    let targetAmount = parseFloat(document.getElementById('target').value);
+
+    let resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = "";
+
+    if (isNaN(currentAge) || isNaN(monthlySalary) || isNaN(annualInterestRate) || isNaN(targetAmount)) {
+        resultDiv.innerHTML = '<p class="warning">⚠️ الرجاء إدخال جميع القيم بشكل صحيح.</p>';
+        return;
+    }
+
+    if (currentAge >= retirementAge) {
+        resultDiv.innerHTML = '<p class="warning">⚠️ أنت في سن التقاعد أو أكبر، لا يمكن الحساب.</p>';
+        return;
+    }
+
+    let yearsLeft = retirementAge - currentAge;
+    let monthsLeft = yearsLeft * 12;
+    let monthlyInterestRate = (annualInterestRate / 100) / 12;
+
+    let factor = (Math.pow(1 + monthlyInterestRate, monthsLeft) - 1) / monthlyInterestRate;
+    let monthlySaving = targetAmount / factor;
+
+    let maxReasonableSaving = monthlySalary * 0.2;
+    let realisticTarget = maxReasonableSaving * factor;
+
+    let html = `<p>🕒 السنوات المتبقية: <strong>${yearsLeft}</strong> سنة</p>`;
+    html += `<p>📆 الأشهر المتبقية: <strong>${monthsLeft}</strong> شهر</p>`;
+    html += `<p>💰 يجب عليك ادخار <strong>${monthlySaving.toFixed(2)}</strong> ريال شهريًا لتحقيق هدفك مع فائدة ${annualInterestRate}% سنويًا.</p>`;
+    html += `<p>💡 الادخار المعقول (20% من راتبك): <strong>${maxReasonableSaving.toFixed(2)}</strong> ريال شهريًا.</p>`;
+    html += `<p>💡 المبلغ المتوقع بجمعه مع ادخار 20%: <strong>${realisticTarget.toFixed(2)}</strong> ريال.</p>`;
+
+    if (monthlySaving > monthlySalary) {
+        html += `<p class="warning">⚠️ المبلغ المطلوب أعلى من راتبك الحالي، تحتاج خطة بديلة أو تقليل المبلغ المستهدف.</p>`;
+    } else if (monthlySaving > maxReasonableSaving) {
+        html += `<p class="warning">⚠️ المبلغ المطلوب أعلى من الادخار المعقول (20% من راتبك). قد يكون صعب تحقيقه.</p>`;
+    } else {
+        html += `<p class="success">✅ المبلغ المطلوب مناسب ويمكن تحقيقه بناءً على راتبك.</p>`;
+    }
+
+    resultDiv.innerHTML = html;
+
+    finalAmount = targetAmount;
+    document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+function showOptions() {
+    document.getElementById('calculator-section').style.display = 'none';
+    document.getElementById('options-section').style.display = 'block';
+    document.getElementById('finalAmount').textContent = finalAmount.toFixed(2);
+}
+
+function receiveLumpSum() {
+    alert(`🎉 ستحصل على مبلغ ${finalAmount.toFixed(2)} ريال دفعة واحدة.`);
+}
+
+function receiveMonthly() {
+    let months = parseInt(document.getElementById('months').value);
+    let resultDiv = document.getElementById('distributionResult');
+
+    if (isNaN(months) || months <= 0) {
+        resultDiv.innerHTML = '<p class="warning">⚠️ الرجاء إدخال عدد أشهر صحيح.</p>';
+        return;
+    }
+
+    let monthlyPayment = finalAmount / months;
+    resultDiv.innerHTML = `<p>💸 ستحصل على <strong>${monthlyPayment.toFixed(2)}</strong> ريال شهريًا لمدة <strong>${months}</strong> شهر.</p>`;
+}
+</script>
+
+</body>
+</html>
